@@ -1,0 +1,176 @@
+<div class="page-wrapper">
+  <app-navbar></app-navbar>
+
+  <main class="page-content">
+    <div class="page-heading">
+      <h2>Tax Planner &amp; Simulator</h2>
+      <p>Simulate how investments and deductions reduce your tax liability (Old/New Regime, FY 2024-25)</p>
+    </div>
+
+    <div class="planner-layout">
+
+      <!-- ── Input Form ─────────────────────────────────────── -->
+      <div class="card form-card">
+        <h3>Declare Your Investments</h3>
+
+        <form [formGroup]="form" (ngSubmit)="runSimulation()">
+
+          <div class="form-field">
+            <label for="annualGross">Annual Gross Income (₹)</label>
+            <input id="annualGross" type="number" formControlName="annualGross" placeholder="Auto-filled from records" />
+            <span class="field-hint">Leave blank to use CTC from your payroll records</span>
+          </div>
+
+          <div class="section-divider">Section 80C — Max ₹1,50,000</div>
+
+          <div class="form-field">
+            <label for="section80C">80C Investments (PPF, ELSS, LIC, PF, NSC…)</label>
+            <input id="section80C" type="number" formControlName="section80C" min="0" />
+            <div class="progress-wrap">
+              <div class="progress-track">
+                <div class="progress-fill" [style.width]="pct(form.value.section80C, 150000) + '%'"></div>
+              </div>
+              <span class="progress-label">{{ pct(form.value.section80C, 150000) }}% of ₹1,50,000 limit</span>
+            </div>
+          </div>
+
+          <div class="section-divider">Other Deductions</div>
+
+          <div class="form-field">
+            <label for="section80D">Section 80D — Health Insurance (Max ₹25,000)</label>
+            <input id="section80D" type="number" formControlName="section80D" min="0" />
+          </div>
+
+          <div class="form-field">
+            <label for="hraExemption">HRA Exemption (₹)</label>
+            <input id="hraExemption" type="number" formControlName="hraExemption" min="0" />
+          </div>
+
+          <div class="form-field">
+            <label for="ltaExemption">LTA Exemption (₹)</label>
+            <input id="ltaExemption" type="number" formControlName="ltaExemption" min="0" />
+          </div>
+
+          <div class="form-field">
+            <label for="npsContribution">NPS 80CCD(1B) (Max ₹50,000)</label>
+            <input id="npsContribution" type="number" formControlName="npsContribution" min="0" />
+          </div>
+
+          <div class="form-field">
+            <label for="homeLoanInterest">Home Loan Interest 24(b) (Max ₹2,00,000)</label>
+            <input id="homeLoanInterest" type="number" formControlName="homeLoanInterest" min="0" />
+          </div>
+
+          <div class="section-divider">Tax Regime</div>
+
+          <div class="regime-toggle">
+            <button
+              type="button"
+              [class.active]="form.value.regime === 'old'"
+              (click)="setRegime('old')"
+            >
+              Old Regime
+            </button>
+            <button
+              type="button"
+              [class.active]="form.value.regime === 'new'"
+              (click)="setRegime('new')"
+            >
+              New Regime
+            </button>
+          </div>
+
+          <button type="submit" class="btn-run" [disabled]="simulating()">
+            <span class="spinner" *ngIf="simulating()"></span>
+            {{ simulating() ? 'Calculating…' : '🔢 Run Simulation' }}
+          </button>
+
+        </form>
+      </div>
+
+      <!-- ── Results ────────────────────────────────────────── -->
+      <div class="results-col">
+
+        <div class="card results-card" *ngIf="result()">
+          <h3>Simulation Results</h3>
+
+          <div class="kpi-grid">
+            <div class="kpi-item">
+              <span class="kpi-label">Taxable Income</span>
+              <span class="kpi-val">{{ fmt(result()!.taxableIncome) }}</span>
+            </div>
+            <div class="kpi-item kpi-highlight">
+              <span class="kpi-label">Annual Tax</span>
+              <span class="kpi-val">{{ fmt(result()!.totalTax) }}</span>
+            </div>
+            <div class="kpi-item">
+              <span class="kpi-label">Monthly TDS</span>
+              <span class="kpi-val">{{ fmt(result()!.monthlyTds) }}</span>
+            </div>
+            <div class="kpi-item kpi-savings">
+              <span class="kpi-label">You Save</span>
+              <span class="kpi-val kpi-green">{{ fmt(result()!.savings) }}</span>
+            </div>
+            <div class="kpi-item">
+              <span class="kpi-label">Effective Rate</span>
+              <span class="kpi-val">{{ result()!.effectiveRate }}%</span>
+            </div>
+          </div>
+
+          <!-- Deductions applied -->
+          <div class="deductions-section">
+            <h4>Deductions Applied</h4>
+            <table class="deductions-table">
+              <tr *ngFor="let d of deductionEntries">
+                <td>{{ d[0] }}</td>
+                <td class="td-right td-primary">{{ fmt(d[1]) }}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Suggestions -->
+          <div class="suggestions-section" *ngIf="result()!.suggestions.length">
+            <h4>💡 Tax-Saving Suggestions</h4>
+            <ul class="suggestion-list">
+              <li *ngFor="let s of result()!.suggestions">{{ s }}</li>
+            </ul>
+          </div>
+
+          <!-- Assumptions -->
+          <details class="assumptions-details">
+            <summary>📌 Assumptions &amp; Limitations</summary>
+            <ul class="assumptions-list">
+              <li *ngFor="let a of result()!.assumptions">{{ a }}</li>
+            </ul>
+          </details>
+        </div>
+
+        <!-- ── Investment Checklist ──────────────────────── -->
+        <div class="card checklist-card" *ngIf="checklist()">
+          <h3>📋 Investment Proof Checklist</h3>
+          <div class="checklist-body" [innerHTML]="formatChecklist(checklist()!.checklist)"></div>
+          <div class="pending-chips" *ngIf="checklist()!.pendingProofs.length">
+            <span class="pending-chip" *ngFor="let p of checklist()!.pendingProofs">{{ p }}</span>
+          </div>
+          <p class="all-done" *ngIf="checklist()!.proofSubmitted && !checklist()!.pendingProofs.length">
+            ✅ All investment proofs submitted!
+          </p>
+        </div>
+
+        <div class="checklist-trigger" *ngIf="!checklist() && !checklistLoading()">
+          <button class="btn-secondary" (click)="loadChecklist()">
+            📋 Generate Investment Proof Checklist
+          </button>
+        </div>
+
+        <div class="checklist-loading" *ngIf="checklistLoading()">
+          <div class="mini-spinner"></div>
+          <span>Generating checklist…</span>
+        </div>
+
+        <p class="checklist-err" *ngIf="checklistError()">{{ checklistError() }}</p>
+
+      </div>
+    </div>
+  </main>
+</div>

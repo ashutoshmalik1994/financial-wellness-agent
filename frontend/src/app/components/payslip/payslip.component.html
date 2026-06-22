@@ -1,0 +1,194 @@
+<div class="page-wrapper">
+  <app-navbar></app-navbar>
+
+  <main class="page-content">
+    <h2 class="page-title">My Payslips</h2>
+
+    <!-- ── Upload Card ─────────────────────────────────────── -->
+    <div class="card upload-card">
+      <h3>Upload Payslip</h3>
+
+      <!-- Drop zone -->
+      <div
+        class="drop-zone"
+        [class.dragging]="isDragging"
+        [class.has-file]="selectedFile"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave()"
+        (drop)="onDrop($event)"
+        (click)="fileInput.click()"
+      >
+        <input
+          #fileInput
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.webp"
+          (change)="onFileChange($event)"
+          hidden
+        />
+
+        <ng-container *ngIf="!selectedFile">
+          <span class="drop-icon">📄</span>
+          <p class="drop-primary">Drag &amp; drop your payslip or <strong>click to browse</strong></p>
+          <p class="drop-hint">PDF, JPG, PNG, WEBP · Max 5 MB</p>
+        </ng-container>
+
+        <ng-container *ngIf="selectedFile">
+          <span class="drop-icon">✅</span>
+          <p class="drop-primary"><strong>{{ selectedFile.name }}</strong></p>
+          <p class="drop-hint">{{ (selectedFile.size / 1024).toFixed(1) }} KB — ready to upload</p>
+        </ng-container>
+      </div>
+
+      <!-- Controls (shown after file selection) -->
+      <div class="upload-controls" *ngIf="selectedFile">
+        <div class="form-field">
+          <label for="month">Month (optional — auto-detected from filename)</label>
+          <input id="month" type="month" [(ngModel)]="selectedMonth" />
+        </div>
+        <div class="upload-buttons">
+          <button class="btn-secondary" (click)="clearFile()">Clear</button>
+          <button class="btn-primary" (click)="uploadPayslip()" [disabled]="uploading">
+            <span class="spinner" *ngIf="uploading"></span>
+            {{ uploading ? 'Processing…' : 'Upload & Process' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Success result -->
+      <div class="upload-result result-success" *ngIf="uploadResult()">
+        <div class="result-header">
+          <span>✅ Payslip processed</span>
+          <span class="conf-badge">{{ uploadResult()!.ocrConfidence }}% confidence</span>
+        </div>
+        <div class="result-fields">
+          <div class="result-field">
+            <span class="rf-label">Basic Salary</span>
+            <span class="rf-value">{{ fmt(uploadResult()!.fields.basicSalary) }}</span>
+          </div>
+          <div class="result-field">
+            <span class="rf-label">HRA</span>
+            <span class="rf-value">{{ fmt(uploadResult()!.fields.hra) }}</span>
+          </div>
+          <div class="result-field">
+            <span class="rf-label">Gross Earnings</span>
+            <span class="rf-value">{{ fmt(uploadResult()!.fields.grossEarnings) }}</span>
+          </div>
+          <div class="result-field">
+            <span class="rf-label">Total Deductions</span>
+            <span class="rf-value rf-red">{{ fmt(uploadResult()!.fields.totalDeductions) }}</span>
+          </div>
+          <div class="result-field result-field--net">
+            <span class="rf-label">Net Pay</span>
+            <span class="rf-value rf-green">{{ fmt(uploadResult()!.fields.netPay) }}</span>
+          </div>
+        </div>
+        <p class="missing-warn" *ngIf="uploadResult()!.missingFields.length">
+          ⚠️ Missing fields: {{ uploadResult()!.missingFields.join(', ') }}
+        </p>
+      </div>
+
+      <!-- Error -->
+      <div class="upload-result result-error" *ngIf="uploadError()">
+        ❌ {{ uploadError() }}
+      </div>
+    </div>
+
+    <!-- ── Payslip History ──────────────────────────────────── -->
+    <section class="section">
+      <h3>Payslip History</h3>
+
+      <div class="loading-row" *ngIf="loading()">Loading payslips…</div>
+      <div class="empty-state" *ngIf="!loading() && payslips().length === 0">
+        <span>📭</span>
+        <p>No payslips uploaded yet. Upload your first payslip above.</p>
+      </div>
+
+      <div class="payslip-grid" *ngIf="payslips().length > 0">
+        <div
+          class="payslip-card"
+          *ngFor="let p of payslips()"
+          [class.selected]="selected()?._id === p._id"
+          (click)="toggleSelect(p)"
+        >
+          <div class="pc-top">
+            <span class="month-pill">{{ fmtMonthShort(p.month) }}</span>
+            <span class="ocr-badge" [class.ocr-low]="p.ocrConfidence < 90">
+              {{ p.ocrConfidence }}% OCR
+            </span>
+          </div>
+          <div class="pc-amounts">
+            <div class="pc-amount">
+              <span class="pc-amt-label">Gross</span>
+              <span class="pc-amt-val">{{ fmt(p.fields.grossEarnings) }}</span>
+            </div>
+            <div class="pc-amount">
+              <span class="pc-amt-label">Deductions</span>
+              <span class="pc-amt-val pc-red">{{ fmt(p.fields.totalDeductions) }}</span>
+            </div>
+            <div class="pc-amount">
+              <span class="pc-amt-label">Net Pay</span>
+              <span class="pc-amt-val pc-green">{{ fmt(p.fields.netPay) }}</span>
+            </div>
+          </div>
+          <p class="pc-hint">Click to {{ selected()?._id === p._id ? 'collapse' : 'expand details' }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Detail Panel ────────────────────────────────────── -->
+    <div class="card detail-panel" *ngIf="selected()">
+      <div class="detail-header">
+        <h3>{{ fmtMonth(selected()!.month) }} — Full Breakdown</h3>
+        <a routerLink="/chat" class="ask-ai-btn">🤖 Ask AI about this payslip</a>
+      </div>
+
+      <div class="breakdown-grid">
+
+        <!-- Earnings -->
+        <div class="breakdown-col">
+          <h4>Earnings</h4>
+          <table class="breakdown-table">
+            <tr><td>Basic Salary</td><td>{{ fmt(selected()!.fields.basicSalary) }}</td></tr>
+            <tr><td>House Rent Allowance</td><td>{{ fmt(selected()!.fields.hra) }}</td></tr>
+            <tr><td>Leave Travel Allow.</td><td>{{ fmt(selected()!.fields.lta) }}</td></tr>
+            <tr><td>Special Allowance</td><td>{{ fmt(selected()!.fields.specialAllowance) }}</td></tr>
+            <tr><td>Medical Allowance</td><td>{{ fmt(selected()!.fields.medicalAllowance) }}</td></tr>
+            <tr><td>Conveyance Allow.</td><td>{{ fmt(selected()!.fields.conveyanceAllowance) }}</td></tr>
+            <tr><td>Reimbursements</td><td>{{ fmt(selected()!.fields.reimbursements) }}</td></tr>
+            <tr class="total-row"><td>Gross Earnings</td><td>{{ fmt(selected()!.fields.grossEarnings) }}</td></tr>
+          </table>
+        </div>
+
+        <!-- Deductions -->
+        <div class="breakdown-col">
+          <h4>Deductions</h4>
+          <table class="breakdown-table">
+            <tr><td>Provident Fund (12%)</td><td class="td-red">{{ fmt(selected()!.fields.providentFund) }}</td></tr>
+            <tr><td>Professional Tax</td><td class="td-red">{{ fmt(selected()!.fields.professionalTax) }}</td></tr>
+            <tr><td>Income Tax (TDS)</td><td class="td-red">{{ fmt(selected()!.fields.incomeTaxTds) }}</td></tr>
+            <tr class="total-row"><td>Total Deductions</td><td class="td-red">{{ fmt(selected()!.fields.totalDeductions) }}</td></tr>
+          </table>
+
+          <div class="net-pay-banner">
+            <span>Net Pay</span>
+            <strong>{{ fmt(selected()!.fields.netPay) }}</strong>
+          </div>
+        </div>
+
+        <!-- YTD -->
+        <div class="breakdown-col">
+          <h4>Year-to-Date</h4>
+          <table class="breakdown-table">
+            <tr><td>YTD Gross</td><td>{{ fmt(selected()!.fields.ytdGross) }}</td></tr>
+            <tr><td>YTD TDS</td><td class="td-red">{{ fmt(selected()!.fields.ytdTds) }}</td></tr>
+            <tr><td>YTD Net Pay</td><td class="td-green">{{ fmt(selected()!.fields.ytdNetPay) }}</td></tr>
+            <tr><td>Working Days</td><td>{{ selected()!.fields.workingDays }}</td></tr>
+            <tr><td>LOP Days</td><td>{{ selected()!.fields.lopDays }}</td></tr>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>

@@ -1,0 +1,112 @@
+<div class="page-wrapper">
+  <app-navbar></app-navbar>
+
+  <main class="page-content">
+
+    <!-- Greeting -->
+    <div class="greeting">
+      <h2>Welcome back, {{ firstName }} 👋</h2>
+      <p>Here's your financial snapshot for FY 2024-25</p>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" *ngIf="loading()">
+      <div class="loading-spinner"></div>
+      <p>Loading your payroll data...</p>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" *ngIf="!loading() && summary()">
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-icon">💼</div>
+        <div class="kpi-body">
+          <span class="kpi-label">Annual CTC</span>
+          <span class="kpi-value">{{ formatINR(summary()!.annualCTC) }}</span>
+          <span class="kpi-sub">FY 2024-25</span>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-green">
+        <div class="kpi-icon">📅</div>
+        <div class="kpi-body">
+          <span class="kpi-label">Monthly CTC</span>
+          <span class="kpi-value">{{ formatINR(summary()!.monthlyCTC) }}</span>
+          <span class="kpi-sub">Gross per month</span>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-purple" *ngIf="ytd()">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-body">
+          <span class="kpi-label">YTD Net Pay</span>
+          <span class="kpi-value">{{ formatINR(ytd()!.ytdNetPay) }}</span>
+          <span class="kpi-sub">{{ ytd()!.monthsProcessed }} months processed</span>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-orange" *ngIf="ytd()">
+        <div class="kpi-icon">🏦</div>
+        <div class="kpi-body">
+          <span class="kpi-label">YTD TDS</span>
+          <span class="kpi-value">{{ formatINR(ytd()!.ytdTds) }}</span>
+          <span class="kpi-sub">Tax deducted at source</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Proofs Alert -->
+    <div class="alert-banner" *ngIf="pendingProofs.length">
+      <div class="alert-icon">⚠️</div>
+      <div class="alert-body">
+        <strong>Investment Proofs Pending</strong>
+        <p>{{ pendingProofs.join(' · ') }}</p>
+      </div>
+      <a routerLink="/tax-planner" class="alert-action">View Checklist →</a>
+    </div>
+
+    <!-- Recent Payslips -->
+    <section class="section" *ngIf="payslips().length > 0">
+      <div class="section-header">
+        <h3>Recent Payslips</h3>
+        <a routerLink="/payslips" class="view-all">View all →</a>
+      </div>
+      <div class="payslip-table">
+        <div class="payslip-row" *ngFor="let p of payslips().slice(0, 4)">
+          <span class="month-tag">{{ formatMonth(p.month) }}</span>
+          <span class="file-name">{{ p.fileName }}</span>
+          <span class="amount gross">{{ formatINR(p.fields.grossEarnings) }}</span>
+          <span class="amount net">{{ formatINR(p.fields.netPay) }}</span>
+          <a [routerLink]="['/payslips']" class="row-action">Details</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="section">
+      <h3>Quick Actions</h3>
+      <div class="action-grid">
+        <a routerLink="/payslips" class="action-card">
+          <span class="action-icon">📄</span>
+          <span class="action-label">Upload Payslip</span>
+          <span class="action-desc">Process & analyse your payslip</span>
+        </a>
+        <a routerLink="/chat" class="action-card">
+          <span class="action-icon">🤖</span>
+          <span class="action-label">Ask AI</span>
+          <span class="action-desc">Chat about salary & deductions</span>
+        </a>
+        <a routerLink="/tax-planner" class="action-card">
+          <span class="action-icon">💡</span>
+          <span class="action-label">Tax Simulation</span>
+          <span class="action-desc">Estimate your tax liability</span>
+        </a>
+        <a routerLink="/tax-planner" class="action-card">
+          <span class="action-icon">📋</span>
+          <span class="action-label">Proof Checklist</span>
+          <span class="action-desc">AI-generated investment checklist</span>
+        </a>
+      </div>
+    </section>
+
+  </main>
+</div>

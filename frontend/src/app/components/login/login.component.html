@@ -1,0 +1,66 @@
+<div class="login-page">
+  <div class="login-card">
+
+    <!-- Brand -->
+    <div class="login-brand">
+      <span class="brand-icon">💰</span>
+      <h1>Financial Wellness</h1>
+      <p>AI-Powered Payslip &amp; Tax Assistant</p>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form" novalidate>
+
+      <div class="form-field">
+        <label for="employeeId">Employee ID</label>
+        <input
+          id="employeeId"
+          type="text"
+          formControlName="employeeId"
+          placeholder="e.g. EMP001"
+          autocomplete="username"
+        />
+        <span
+          class="error-msg"
+          *ngIf="employeeIdCtrl?.touched && employeeIdCtrl?.hasError('required')"
+        >
+          Employee ID is required
+        </span>
+      </div>
+
+      <div class="form-field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+        />
+        <span
+          class="error-msg"
+          *ngIf="passwordCtrl?.touched && passwordCtrl?.hasError('required')"
+        >
+          Password is required
+        </span>
+      </div>
+
+      <div class="alert alert-danger" *ngIf="errorMsg">
+        {{ errorMsg }}
+      </div>
+
+      <button type="submit" class="btn-submit" [disabled]="loading">
+        <span class="spinner" *ngIf="loading"></span>
+        <span *ngIf="!loading">Sign In</span>
+      </button>
+
+    </form>
+
+    <!-- Demo hint -->
+    <div class="demo-hint">
+      <strong>Demo Credentials</strong><br />
+      EMP001 / Demo&#64;1234 &nbsp;·&nbsp; EMP002 / Demo&#64;1234
+    </div>
+
+  </div>
+</div>

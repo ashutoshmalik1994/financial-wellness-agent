@@ -1,0 +1,22 @@
+<header class="header">
+  <div class="header-brand">
+    <span class="logo">💰</span>
+    <div class="brand-text">
+      <h1>Financial Wellness</h1>
+      <p *ngIf="user()">{{ user()!.designation }} · {{ user()!.department }}</p>
+    </div>
+  </div>
+
+  <div class="header-actions" *ngIf="user()">
+    <span class="emp-badge">{{ user()!.employeeId }}</span>
+    <span class="emp-name">{{ user()!.name }}</span>
+    <button class="btn-ghost" (click)="logout()">Sign Out</button>
+  </div>
+</header>
+
+<nav class="nav-bar">
+  <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+  <a routerLink="/payslips"  routerLinkActive="active">Payslips</a>
+  <a routerLink="/chat"      routerLinkActive="active">AI Assistant</a>
+  <a routerLink="/tax-planner" routerLinkActive="active">Tax Planner</a>
+</nav>
