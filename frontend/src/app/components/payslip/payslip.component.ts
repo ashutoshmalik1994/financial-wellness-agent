@@ -96,6 +96,7 @@ export class PayslipComponent implements OnInit {
   }
 
   fmt(v: number): string {
+    if (!v) return '₹0'
     return '₹' + v.toLocaleString('en-IN');
   }
 
